@@ -77,23 +77,11 @@ The renderer can also accept HTML content directly.
 ```ruby
 require "openhtmltopdf"
 
-html = <<~HTML
-  <!DOCTYPE html>
-  <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Example</title>
-    </head>
-    <body>
-      <h1>Hello OpenHTMLtoPDF</h1>
-      <p>This is a simple paragraph.</p>
-    </body>
-  </html>
-HTML
+html = File.read("article.html")
 
 OpenHtmlToPdf.render(
   html,
-  "output.pdf"
+  "article.pdf"
 )
 ```
 

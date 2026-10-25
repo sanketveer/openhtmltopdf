@@ -15,6 +15,7 @@ Gem::Specification.new do |spec|
   DESC
 
   spec.homepage = "https://github.com/sanketveer/openhtmltopdf"
+  spec.source_code_uri = "https://github.com/sanketveer/openhtmltopdf"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 
