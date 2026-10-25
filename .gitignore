@@ -1,11 +1,25 @@
-/.bundle/
-/.yardoc
-/_yardoc/
-/coverage/
-/doc/
-/pkg/
-/spec/reports/
-/tmp/
+# Ruby
+.bundle/
+vendor/bundle/
+*.gem
 
-# rspec failure tracking
-.rspec_status
+# Logs / temp
+*.log
+tmp/
+log/
+
+# macOS
+.DS_Store
+
+# Java / Maven
+java/target/
+java/.idea/
+java/*.class
+
+# Generated PDFs
+*.pdf
+
+# IDE
+.idea/
+.vscode/
+openhtmltopdf-0.1.0/
