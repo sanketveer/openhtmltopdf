@@ -15,12 +15,11 @@ Gem::Specification.new do |spec|
   DESC
 
   spec.homepage = "https://github.com/sanketveer/openhtmltopdf"
-  spec.source_code_uri = "https://github.com/sanketveer/openhtmltopdf"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = "https://github.com/sanketveer/openhtmltopdf"
 
   gemspec = File.basename(__FILE__)
 

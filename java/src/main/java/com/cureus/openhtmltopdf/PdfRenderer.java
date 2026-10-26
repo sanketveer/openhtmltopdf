@@ -11,11 +11,19 @@ import java.nio.file.Files;
 
 public class PdfRenderer {
 
-    private static final String FONT_RESOURCE =
-        "/fonts/Arial.ttf";
+    private static final String FONT_FAMILY = "MyriadPro";
 
-    private static final String FONT_FAMILY =
-        "Arial";
+    private static final String LIGHT_FONT =
+        "/fonts/myriadprolight.ttf";
+
+    private static final String REGULAR_FONT =
+        "/fonts/myriadproregular.ttf";
+
+    private static final String SEMIBOLD_FONT =
+        "/fonts/myriadprosemibold.ttf";
+
+    private static final String BOLD_FONT =
+        "/fonts/myriadprobold.ttf";
 
     public static void main(String[] args) throws Exception {
 
@@ -77,33 +85,31 @@ public class PdfRenderer {
             html.length()
         );
 
-        /*
-         * Load the bundled font.
-         */
-        File fontFile = extractFont();
+        File lightFont = extractFont(LIGHT_FONT);
+        File regularFont = extractFont(REGULAR_FONT);
+        File semiboldFont = extractFont(SEMIBOLD_FONT);
+        File boldFont = extractFont(BOLD_FONT);
 
         System.out.println(
-            "Font       : " +
-            fontFile.getAbsolutePath()
+            "Light font     : " +
+            lightFont.getAbsolutePath()
         );
 
         System.out.println(
-            "Font size  : " +
-            fontFile.length() +
-            " bytes"
+            "Regular font   : " +
+            regularFont.getAbsolutePath()
         );
 
-        if (!fontFile.exists() ||
-            fontFile.length() == 0) {
+        System.out.println(
+            "Semibold font  : " +
+            semiboldFont.getAbsolutePath()
+        );
 
-            throw new IllegalStateException(
-                "Font file is empty or does not exist"
-            );
-        }
+        System.out.println(
+            "Bold font      : " +
+            boldFont.getAbsolutePath()
+        );
 
-        /*
-         * Create the PDF.
-         */
         try (
             OutputStream outputStream =
                 new FileOutputStream(outputFile)
@@ -112,24 +118,46 @@ public class PdfRenderer {
             PdfRendererBuilder builder =
                 new PdfRendererBuilder();
 
-            System.out.println(
-                "Registering font: " +
-                fontFile.getAbsolutePath()
-            );
-
             builder
                 .withHtmlContent(
                     html,
                     baseUri
                 )
+
                 .useFont(
-                    fontFile,
-                    "Arial",
+                    lightFont,
+                    FONT_FAMILY,
+                    300,
+                    PdfRendererBuilder.FontStyle.NORMAL,
+                    true
+                )
+
+                .useFont(
+                    regularFont,
+                    FONT_FAMILY,
                     400,
                     PdfRendererBuilder.FontStyle.NORMAL,
                     true
                 )
-                .usePdfUaAccessbility(true)
+
+                .useFont(
+                    semiboldFont,
+                    FONT_FAMILY,
+                    600,
+                    PdfRendererBuilder.FontStyle.NORMAL,
+                    true
+                )
+
+                .useFont(
+                    boldFont,
+                    FONT_FAMILY,
+                    700,
+                    PdfRendererBuilder.FontStyle.NORMAL,
+                    true
+                )
+
+                .usePdfUaAccessibility(true)
+
                 .toStream(outputStream);
 
             builder.run();
@@ -140,22 +168,18 @@ public class PdfRenderer {
         );
     }
 
-    /**
-     * Extract the bundled TTF font from the JAR
-     * into a temporary file.
-     */
-    private static File extractFont()
+    private static File extractFont(String resource)
         throws Exception {
 
         InputStream inputStream =
             PdfRenderer.class.getResourceAsStream(
-                FONT_RESOURCE
+                resource
             );
 
         if (inputStream == null) {
             throw new IllegalStateException(
                 "Font resource not found: " +
-                FONT_RESOURCE
+                resource
             );
         }
 
@@ -168,19 +192,23 @@ public class PdfRenderer {
         fontFile.deleteOnExit();
 
         System.out.println(
-            "Extracting font resource: " +
-            FONT_RESOURCE
+            "Extracting font: " +
+            resource
         );
 
         try (
-            InputStream input =
-                inputStream;
-
+            InputStream input = inputStream;
             OutputStream output =
                 new FileOutputStream(fontFile)
         ) {
-
             input.transferTo(output);
+        }
+
+        if (fontFile.length() == 0) {
+            throw new IllegalStateException(
+                "Extracted font is empty: " +
+                resource
+            );
         }
 
         return fontFile;
