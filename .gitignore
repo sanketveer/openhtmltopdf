@@ -23,3 +23,5 @@ java/*.class
 .idea/
 .vscode/
 openhtmltopdf-0.1.0/
+# Test status
+.rspec_status

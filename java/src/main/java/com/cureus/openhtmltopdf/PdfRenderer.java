@@ -27,9 +27,9 @@ public class PdfRenderer {
 
     public static void main(String[] args) throws Exception {
 
-        if (args.length != 2) {
+        if (args.length != 2 && args.length != 3) {
             System.err.println(
-                "Usage: PdfRenderer <input.html> <output.pdf>"
+                "Usage: PdfRenderer <input.html> <output.pdf> [base-uri]"
             );
             System.exit(1);
         }
@@ -62,8 +62,17 @@ public class PdfRenderer {
                 StandardCharsets.UTF_8
             );
 
-        String baseUri =
-            parentDirectory.toURI().toString();
+        String baseUri;
+
+        if (args.length == 3 && !args[2].isEmpty()) {
+            // Explicit base: a URL (contains "://") is used as-is,
+            // otherwise it is treated as a filesystem directory.
+            baseUri = args[2].contains("://")
+                ? args[2]
+                : new File(args[2]).getAbsoluteFile().toURI().toString();
+        } else {
+            baseUri = parentDirectory.toURI().toString();
+        }
 
         System.out.println(
             "Input HTML : " +

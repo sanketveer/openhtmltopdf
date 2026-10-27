@@ -14,24 +14,19 @@ module OpenHtmlToPdf
       raise ArgumentError, "HTML cannot be empty" if html.to_s.strip.empty?
 
       output = File.expand_path(output)
-
       FileUtils.mkdir_p(File.dirname(output))
 
       html_file = Tempfile.new(["openhtmltopdf-", ".html"])
 
       begin
-        html_file.write(html)
+        html_file.binmode
+        html_file.write(html.to_s.encode("UTF-8"))
         html_file.flush
 
-        command = [
-          "java",
-          "-jar",
-          @java_jar,
-          html_file.path,
-          output
-        ]
+        command = ["java", "-jar", @java_jar, html_file.path, output]
+        command << resolve_base_url(base_url) if base_url
 
-        stdout, stderr, status = Open3.capture3(*command)
+        stdout, stderr, status = run(command)
 
         unless status.success?
           raise Error,
@@ -45,6 +40,22 @@ module OpenHtmlToPdf
         html_file.close
         html_file.unlink
       end
+    end
+
+    private
+
+    def run(command)
+      Open3.capture3(*command)
+    rescue Errno::ENOENT
+      raise Error,
+            "Java executable not found. Install Java 11 or newer and ensure `java` is on PATH."
+    end
+
+    def resolve_base_url(base_url)
+      base_url = base_url.to_s
+      return base_url if base_url.include?("://")
+
+      File.expand_path(base_url)
     end
   end
 end

@@ -12,4 +12,10 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  # Tests that spawn Java are tagged :integration and can be skipped with
+  #   rspec --tag ~integration
+  config.before(:each, :integration) do
+    skip "java not on PATH" unless system("java", "-version", out: File::NULL, err: File::NULL)
+  end
 end

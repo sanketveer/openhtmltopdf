@@ -2,105 +2,94 @@
 
 A Ruby wrapper around [OpenHTMLtoPDF](https://github.com/danfickle/openhtmltopdf) for converting HTML documents to PDF.
 
-The gem uses a Java-based OpenHTMLtoPDF runner internally. The Java runner is packaged with the gem, so Ruby applications can invoke PDF generation without requiring a separate Java project at runtime.
+The gem runs a Java-based OpenHTMLtoPDF runner internally. The runner JAR is packaged with the gem, so Ruby applications can generate PDFs without a separate Java project at runtime.
 
 ## Features
 
-- Convert HTML files to PDF
 - Convert HTML strings to PDF
-- Uses OpenHTMLtoPDF internally
-- Java runner packaged inside the gem
-- Supports embedded fonts
-- PDF/UA accessibility support through the OpenHTMLtoPDF Java renderer
+- Convert HTML files to PDF
+- Embedded fonts (Myriad Pro family)
+- PDF/UA accessibility mode through the OpenHTMLtoPDF Java renderer
 - Designed for Ruby on Rails applications
-- Java 11 compatible
 
 ## Requirements
 
 - Ruby `>= 3.2`
-- Java 11 or newer
-
-Check Java:
+- Java 11 or newer (`java` on `PATH`)
 
 ```bash
 java -version
 ```
 
-The current Java runner is built and tested with Java 11.
-
 ## Installation
-
-Add the gem to your application's Gemfile:
 
 ```ruby
 gem "openhtmltopdf"
 ```
 
-Then:
-
 ```bash
 bundle install
 ```
 
-Or install the gem directly:
+Or install directly:
 
 ```bash
 gem install openhtmltopdf
 ```
 
-## Basic Usage
+## Usage
 
-Render an HTML file:
+### Render an HTML string
 
 ```ruby
 require "openhtmltopdf"
 
 OpenHtmlToPdf.render(
-  "input.html",
-  "output.pdf"
+  "<h1>Invoice</h1><p>Thank you.</p>",
+  output: "invoice.pdf"
 )
 ```
 
-For example:
+### Render an HTML file
 
 ```ruby
-OpenHtmlToPdf.render(
+OpenHtmlToPdf.render_file(
   "article.html",
-  "article.pdf"
+  output: "article.pdf"
 )
 ```
 
-## Rendering HTML
+Relative images, stylesheets and links in `article.html` are resolved against the file's directory.
 
-The renderer can also accept HTML content directly.
+### Base URL
+
+Pass `base_url:` to control how relative references are resolved when rendering a string. It may be a directory path or a URL:
 
 ```ruby
-require "openhtmltopdf"
-
-html = File.read("article.html")
-
 OpenHtmlToPdf.render(
   html,
-  "article.pdf"
+  output: "report.pdf",
+  base_url: "/srv/app/public"
 )
 ```
 
+If omitted, relative references are resolved against the temporary directory used for the render, so use absolute URLs or pass `base_url:`.
+
+Both methods create missing output directories and return the output path.
+
 ## Rails Usage
-
-The gem can be used from a Rails application.
-
-For example:
 
 ```ruby
 pdf_path = Rails.root.join("tmp", "article.pdf")
 
 OpenHtmlToPdf.render(
   article_html,
-  pdf_path.to_s
+  output: pdf_path.to_s,
+  base_url: Rails.root.join("public").to_s
 )
 ```
 
-Then the generated PDF can be returned from a controller:
+Return the file from a controller:
 
 ```ruby
 send_file pdf_path,
@@ -108,338 +97,96 @@ send_file pdf_path,
           disposition: "inline"
 ```
 
-## PDF Accessibility
+## Errors
 
-The Java renderer is configured to generate accessible PDF output using OpenHTMLtoPDF's PDF/UA support.
-
-The PDF structure is generated from semantic HTML.
-
-For example:
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Accessible Document</title>
-</head>
-
-<body>
-  <h1>Article Title</h1>
-
-  <p>
-    This is the article content.
-  </p>
-
-  <h2>Introduction</h2>
-
-  <p>
-    Additional article content.
-  </p>
-</body>
-</html>
-```
-
-The resulting PDF should be validated with a PDF accessibility validator such as VeraPDF.
-
-Example:
-
-```bash
-verapdf -f ua1 output.pdf
-```
-
-A compliant validation should report:
-
-```text
-isCompliant="true"
-failedRules="0"
-failedChecks="0"
-```
-
-PDF/UA compliance also depends on the source HTML structure, images, alternative text, tables, fonts, document metadata, and other content-specific requirements.
+- `OpenHtmlToPdf::Error` is raised when the runner fails (the message includes its STDOUT/STDERR), when `java` is not installed, when the bundled JAR is missing, or when `render_file` gets a missing path.
+- `ArgumentError` is raised for empty HTML.
 
 ## Fonts
 
-The Java runner includes an embedded Arial font:
-
-```text
-java/src/main/resources/fonts/Arial.ttf
-```
-
-The font is registered by the Java renderer and exposed to the HTML renderer as:
+The runner embeds the Myriad Pro family and registers it as the font family `MyriadPro` with weights 300 (light), 400 (regular), 600 (semibold) and 700 (bold):
 
 ```css
 body {
-  font-family: Arial;
+  font-family: MyriadPro;
 }
 ```
 
-The generated PDF should contain the embedded font.
-
-You can verify this using:
+Verify embedding with:
 
 ```bash
 pdffonts output.pdf
 ```
 
-For example:
+The important columns are `emb = yes`, `sub = yes` and `uni = yes`.
 
-```text
-AAASQD+ArialMT  CID TrueType  Identity-H  yes  yes  yes
-```
+## PDF Accessibility
 
-The important values are:
+The runner enables OpenHTMLtoPDF's PDF/UA mode. The PDF structure comes from semantic HTML (headings, paragraphs, lists, tables, `alt` text on images, `lang` and `<title>`).
 
-```text
-emb = yes
-sub = yes
-uni = yes
-```
-
-## Testing the Java Runner
-
-The Java runner is located in:
-
-```text
-java/
-```
-
-Build it with Maven:
+Validate output with a PDF/UA validator such as veraPDF:
 
 ```bash
-cd java
-mvn clean package
+verapdf -f ua1 output.pdf
 ```
 
-The executable JAR is generated at:
-
-```text
-java/target/openhtmltopdf-runner-0.1.0-jar-with-dependencies.jar
-```
-
-Test it directly:
-
-```bash
-java -jar \
-  target/openhtmltopdf-runner-0.1.0-jar-with-dependencies.jar \
-  test.html \
-  test.pdf
-```
-
-Verify the generated PDF:
-
-```bash
-pdftotext test.pdf -
-```
-
-Check embedded fonts:
-
-```bash
-pdffonts test.pdf
-```
-
-Validate PDF/UA:
-
-```bash
-verapdf -f ua1 test.pdf
-```
-
-## Testing the Ruby Gem Locally
-
-From the repository root:
-
-```bash
-bundle install
-```
-
-Verify that Ruby resolves the Java runner:
-
-```bash
-ruby -Ilib -e 'require "openhtmltopdf"; puts OpenHtmlToPdf.java_jar'
-```
-
-Run the Ruby integration test:
-
-```bash
-ruby -Ilib gem_test.rb
-```
-
-Expected result:
-
-```text
-PDF generated: .../gem-test.pdf
-```
-
-Then:
-
-```bash
-pdftotext gem-test.pdf -
-```
-
-And:
-
-```bash
-pdffonts gem-test.pdf
-```
-
-Finally:
-
-```bash
-verapdf -f ua1 gem-test.pdf
-```
-
-## Building the Gem
-
-Build the gem with:
-
-```bash
-gem build openhtmltopdf.gemspec
-```
-
-Expected output:
-
-```text
-Successfully built RubyGem
-Name: openhtmltopdf
-Version: 0.1.0
-File: openhtmltopdf-0.1.0.gem
-```
-
-Inspect the generated package:
-
-```bash
-gem contents ./openhtmltopdf-0.1.0.gem
-```
-
-You should verify that the Java runner is included in the gem.
-
-## Installing the Locally Built Gem
-
-Install the generated gem:
-
-```bash
-gem install ./openhtmltopdf-0.1.0.gem
-```
-
-Verify:
-
-```bash
-gem list openhtmltopdf
-```
-
-Then test:
-
-```bash
-ruby -e 'require "openhtmltopdf"; puts OpenHtmlToPdf.java_jar'
-```
+Compliance also depends on the content of the source HTML. Validate production documents, not only test documents.
 
 ## Development
-
-Clone the repository:
 
 ```bash
 git clone https://github.com/sanketveer/openhtmltopdf.git
 cd openhtmltopdf
-```
-
-Install dependencies:
-
-```bash
 bundle install
+
+# Rebuild the Java runner (only needed when java/ changes)
+cd java && mvn clean package && cp target/openhtmltopdf-runner-0.1.0-jar-with-dependencies.jar ../lib/openhtmltopdf/java/ && cd ..
+
+bundle exec rspec                 # all tests
+bundle exec rspec --tag ~integration   # Ruby-only tests, no Java needed
+ruby -Ilib gem_test.rb            # manual smoke test, writes gem-test.pdf
 ```
 
-Build the Java runner:
+## Building and Installing the Gem
 
 ```bash
-cd java
-mvn clean package
-cd ..
-```
-
-Run the Ruby tests:
-
-```bash
-bundle exec rspec
-```
-
-Run the integration test:
-
-```bash
-ruby -Ilib gem_test.rb
+gem build openhtmltopdf.gemspec
+gem contents ./openhtmltopdf-0.1.0.gem | grep jar   # confirm runner is packaged
+gem install ./openhtmltopdf-0.1.0.gem
+ruby -e 'require "openhtmltopdf"; puts OpenHtmlToPdf.java_jar'
 ```
 
 ## Project Structure
 
 ```text
 openhtmltopdf/
-├── bin/
-├── java/
+├── java/                       # Java runner (Maven project)
 │   ├── pom.xml
-│   ├── src/
-│   │   └── main/
-│   │       ├── java/
-│   │       │   └── com/cureus/openhtmltopdf/
-│   │       │       └── PdfRenderer.java
-│   │       └── resources/
-│   │           └── fonts/
-│   │               └── Arial.ttf
-│   └── test.html
+│   └── src/main/
+│       ├── java/com/cureus/openhtmltopdf/PdfRenderer.java
+│       └── resources/fonts/    # Myriad Pro font files
 ├── lib/
-│   ├── openhtmltopdf.rb
+│   ├── openhtmltopdf.rb        # Public API
 │   └── openhtmltopdf/
-│       ├── renderer.rb
-│       ├── java/
-│       │   └── openhtmltopdf-runner-0.1.0-jar-with-dependencies.jar
-│       └── version.rb
-├── sig/
+│       ├── renderer.rb         # Runs the Java runner
+│       ├── version.rb
+│       └── java/               # Packaged runner JAR
+├── sig/                        # RBS signatures
 ├── spec/
+├── gem_test.rb
 ├── Gemfile
-├── LICENSE.txt
-├── README.md
 ├── Rakefile
 └── openhtmltopdf.gemspec
 ```
 
 ## Java Runner
 
-The Java runner is responsible for:
+The runner (`java -jar runner.jar <input.html> <output.pdf> [base-uri]`):
 
-1. Reading the HTML input.
-2. Resolving the HTML base URI.
-3. Loading HTML and CSS.
-4. Registering fonts.
-5. Rendering the document using OpenHTMLtoPDF.
-6. Generating the PDF.
-7. Producing an accessible PDF structure when PDF/UA mode is enabled.
-
-The Ruby layer is responsible for invoking the Java runner and exposing a Ruby-friendly API.
-
-## PDF Validation Workflow
-
-For accessibility development, use the following workflow:
-
-```bash
-# 1. Build Java renderer
-cd java
-mvn clean package
-
-# 2. Generate PDF
-java -jar \
-  target/openhtmltopdf-runner-0.1.0-jar-with-dependencies.jar \
-  test.html \
-  test.pdf
-
-# 3. Check extracted text
-pdftotext test.pdf -
-
-# 4. Check fonts
-pdffonts test.pdf
-
-# 5. Validate PDF/UA
-verapdf -f ua1 test.pdf
-```
-
-For production documents, validation should be performed against the actual article/document HTML rather than only the test HTML.
+1. Reads the HTML input.
+2. Resolves the base URI (the optional third argument, otherwise the HTML file's directory).
+3. Registers the embedded fonts.
+4. Renders the document with OpenHTMLtoPDF in PDF/UA mode.
 
 ## License
 
